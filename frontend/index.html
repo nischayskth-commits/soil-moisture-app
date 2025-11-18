@@ -41,7 +41,7 @@ document.getElementById("predictBtn").onclick = async function() {
   resDiv.innerText = "Sending request...";
 
   try {
-    const resp = await fetch("https://soil-moisture-backend-r7m2.onrender.com/predict", {
+    const resp = await fetchfetch("https://soil-moisture-backend-r7m2.onrender.com/predict", {...})
 
       method: "POST",
       headers: {"Content-Type":"application/json"},
