@@ -5,19 +5,37 @@
   <title>Soil Moisture Predictor</title>
   <style>
     body { font-family: Arial; background:#f6f6f6; padding:20px; }
-    .card { max-width:520px; margin:20px auto; background:#fff; padding:20px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.05); }
-    label {display:block; margin-top:10px;}
-    input, select { width:100%; padding:8px; margin-top:6px; box-sizing:border-box;}
-    button{ margin-top:14px; padding:10px 16px; }
-    .result{ margin-top:16px; padding:10px; background:#f0f8ff; border-radius:6px;}
+    .card {
+      max-width:520px;
+      margin:20px auto;
+      background:#fff;
+      padding:20px;
+      border-radius:8px;
+      box-shadow:0 4px 10px rgba(0,0,0,0.05);
+    }
+    label { display:block; margin-top:10px; }
+    input, select { width:100%; padding:8px; margin-top:6px; box-sizing:border-box; }
+    button { margin-top:14px; padding:10px 16px; cursor:pointer; }
+    .result { margin-top:16px; padding:10px; background:#f0f8ff; border-radius:6px; }
   </style>
 </head>
 <body>
+
   <div class="card">
     <h2>Soil Moisture Predictor</h2>
-    <label>Temperature (°C) <input id="temperature" type="number" value="25"></label>
-    <label>Humidity (%) <input id="humidity" type="number" value="60"></label>
-    <label>Rainfall (mm) <input id="rainfall" type="number" value="4"></label>
+
+    <label>Temperature (°C)
+      <input id="temperature" type="number" value="25">
+    </label>
+
+    <label>Humidity (%)
+      <input id="humidity" type="number" value="60">
+    </label>
+
+    <label>Rainfall (mm)
+      <input id="rainfall" type="number" value="4">
+    </label>
+
     <label>Soil Type
       <select id="soil_type">
         <option value="0">Sandy</option>
@@ -25,42 +43,46 @@
         <option value="2">Clay</option>
       </select>
     </label>
+
     <button id="predictBtn">Predict Moisture</button>
 
-    <div id="result" class="result" style="display:none"></div>
+    <div id="result" class="result" style="display:none;"></div>
   </div>
-  <script>
-    document.getElementById("predictBtn").onclick = async function() {
-      const temp = parseFloat(document.getElementById("temperature").value);
-      const hum = parseFloat(document.getElementById("humidity").value);
-      const rain = parseFloat(document.getElementById("rainfall").value);
-      const soil = parseInt(document.getElementById("soil_type").value);
-    
-      const resDiv = document.getElementById("result");
-      resDiv.style.display = "block";
-      resDiv.innerText = "Sending request...";
-    
-      try {
-        const resp = await fetch("https://soil-moisture-backend-r7m2.onrender.com/predict", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            temperature: temp,
-            humidity: hum,
-            rainfall: rain,
-            soil_type: soil
-          })
-        });
-    
-        if (!resp.ok) throw new Error('Server returned ' + resp.status);
-    
-        const data = await resp.json();
-        resDiv.innerHTML = `<strong>Predicted moisture:</strong> ${data.moisture}% <br><strong>Category:</strong> ${data.category}`;
-    
-      } catch (err) {
-        resDiv.innerText = "Error: " + err;
-      }
-    };
-    </script>    
+
+<script>
+document.getElementById("predictBtn").onclick = async function() {
+  const temp = parseFloat(document.getElementById("temperature").value);
+  const hum = parseFloat(document.getElementById("humidity").value);
+  const rain = parseFloat(document.getElementById("rainfall").value);
+  const soil = parseInt(document.getElementById("soil_type").value);
+
+  const resDiv = document.getElementById("result");
+  resDiv.style.display = "block";
+  resDiv.innerText = "Sending request...";
+
+  try {
+    const resp = await fetch("https://soil-moisture-backend-r7m2.onrender.com/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        temperature: temp,
+        humidity: hum,
+        rainfall: rain,
+        soil_type: soil
+      })
+    });
+
+    if (!resp.ok) throw new Error("Server returned " + resp.status);
+
+    const data = await resp.json();
+    resDiv.innerHTML = `<strong>Predicted moisture:</strong> ${data.moisture}% <br>
+                        <strong>Category:</strong> ${data.category}`;
+
+  } catch (err) {
+    resDiv.innerText = "Error: " + err;
+  }
+};
+</script>
+
 </body>
 </html>
