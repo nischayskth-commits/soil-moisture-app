@@ -29,31 +29,38 @@
 
     <div id="result" class="result" style="display:none"></div>
   </div>
-<script>
-document.getElementById("predictBtn").onclick = async function() {
-  const temp = parseFloat(document.getElementById("temperature").value);
-  const hum = parseFloat(document.getElementById("humidity").value);
-  const rain = parseFloat(document.getElementById("rainfall").value);
-  const soil = parseInt(document.getElementById("soil_type").value);
-
-  const resDiv = document.getElementById("result");
-  resDiv.style.display = "block";
-  resDiv.innerText = "Sending request...";
-
-  try {
-    const resp = await fetchfetch("https://soil-moisture-backend-r7m2.onrender.com/predict", {...})
-
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({temperature: temp, humidity: hum, rainfall: rain, soil_type: soil})
-    });
-    if (!resp.ok) throw new Error('Server returned ' + resp.status);
-    const data = await resp.json();
-    resDiv.innerHTML = `<strong>Predicted moisture:</strong> ${data.moisture}% <br><strong>Category:</strong> ${data.category}`;
-  } catch (err) {
-    resDiv.innerText = "Error: " + err;
-  }
-};
-</script>
+  <script>
+    document.getElementById("predictBtn").onclick = async function() {
+      const temp = parseFloat(document.getElementById("temperature").value);
+      const hum = parseFloat(document.getElementById("humidity").value);
+      const rain = parseFloat(document.getElementById("rainfall").value);
+      const soil = parseInt(document.getElementById("soil_type").value);
+    
+      const resDiv = document.getElementById("result");
+      resDiv.style.display = "block";
+      resDiv.innerText = "Sending request...";
+    
+      try {
+        const resp = await fetch("https://soil-moisture-backend-r7m2.onrender.com/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            temperature: temp,
+            humidity: hum,
+            rainfall: rain,
+            soil_type: soil
+          })
+        });
+    
+        if (!resp.ok) throw new Error('Server returned ' + resp.status);
+    
+        const data = await resp.json();
+        resDiv.innerHTML = `<strong>Predicted moisture:</strong> ${data.moisture}% <br><strong>Category:</strong> ${data.category}`;
+    
+      } catch (err) {
+        resDiv.innerText = "Error: " + err;
+      }
+    };
+    </script>    
 </body>
 </html>
