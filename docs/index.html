@@ -400,8 +400,8 @@ document.getElementById("btn-predict").addEventListener("click", async () => {
     let explain = "";
     // If very low moisture OR low + low rainfall -> irrigate urgent
     if (moist < 12 || (cat.includes("Low") && body.rainfall < 5)) {
-      actionText = "💧 Soil is dry. Irrigate soon (small, frequent doses) and apply mulch to retain moisture.";
-      explain = "Low predicted moisture with little recent rainfall — irrigate and mulch.";
+      actionText = "💧 Soil is dry. Irrigate soon (small, frequent doses) and apply much to retain moisture.";
+      explain = "Low predicted moisture with little recent rainfall — irrigate and much.";
     } else if (cat.includes("Medium")) {
       actionText = "🌿 Moisture is optimal. Monitor regularly and follow crop schedule.";
       explain = "Conditions are within the model's optimal range.";
