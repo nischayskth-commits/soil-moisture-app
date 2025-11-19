@@ -1,159 +1,395 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8"/>
-  <title>Soil Moisture Predictor</title>
+  <meta charset="utf-8" />
+  <title>Soil Moisture Predictor — Enhanced</title>
 
   <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
+  <!-- Font Awesome for icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
   <style>
-    body { background: #f4f7fe; padding: 40px; }
-    .card { border-radius: 20px; padding: 25px; }
-    .result-box { font-size: 18px; border-radius: 12px; padding: 15px; margin-top: 15px; }
-    #moistureResult.low { background: #ffe6e6; color: #cc0000; }
-    #moistureResult.medium { background: #fff3cd; color: #856404; }
-    #moistureResult.high { background: #e2f7e2; color: #0f8a0f; }
-    .footer { margin-top: 20px; font-size: 14px; color: #777; text-align:center; }
-    .img-preview { width: 150px; margin-top: 10px; border-radius: 8px; display:none; }
+    /* Background gradient + animated blobs */
+    :root{
+      --card-bg: rgba(255,255,255,0.95);
+      --accent: #2b9cff;
+      --muted: #6b7280;
+    }
+    html,body { height:100%; }
+    body{
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      margin:0; min-height:100%;
+      background: linear-gradient(180deg,#eef6ff 0%, #f6f9ff 50%, #fffaf6 100%);
+      display:flex; align-items:center; justify-content:center;
+      padding:40px;
+      overflow-y:auto;
+    }
+
+    /* floating blobs */
+    .blob {
+      position: fixed;
+      filter: blur(70px);
+      opacity: .28;
+      z-index: 0;
+      transform: translate3d(0,0,0);
+      animation: floaty 12s ease-in-out infinite;
+      border-radius: 50%;
+      mix-blend-mode: screen;
+    }
+    .blob.b1{ width:420px; height:420px; left:-120px; top:-80px; background: #d8f1ff; animation-duration:18s; }
+    .blob.b2{ width:360px; height:360px; right:-100px; bottom:-60px; background: #ffe6f0; animation-duration:16s; }
+    @keyframes floaty {
+      0% { transform: translateY(0px) translateX(0px) rotate(0deg); }
+      50% { transform: translateY(-30px) translateX(18px) rotate(6deg); }
+      100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
+    }
+
+    /* main card */
+    .app-card {
+      width: 100%; max-width:720px;
+      background: var(--card-bg);
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(15,23,42,0.08);
+      padding: 28px;
+      position: relative;
+      z-index: 2;
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .app-card:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(15,23,42,0.12); }
+
+    h1 { font-weight:700; margin-bottom:6px; font-size:22px; }
+    .subtitle { color:var(--muted); font-size:14px; margin-bottom:18px; }
+
+    label{ font-weight:600; font-size:14px; color:#233044; margin-top:12px; }
+    .form-control { border-radius:10px; padding:10px 12px; }
+
+    /* buttons */
+    .btn-main{
+      border-radius:10px; padding:10px 14px;
+      box-shadow:none; transition:transform .12s ease;
+    }
+    .btn-main:active{ transform:translateY(1px) }
+
+    /* result box styles w/ animations */
+    .result {
+      border-radius:12px; padding:14px; margin-top:14px;
+      transition: transform .18s cubic-bezier(.2,.9,.2,1), opacity .18s;
+      opacity: 0; transform: translateY(8px);
+    }
+    .result.show{ opacity:1; transform: translateY(0px); }
+
+    .low { background: linear-gradient(90deg,#fff5f5,#ffdede); border-left:4px solid #ff6b6b; color:#7a0c0c }
+    .medium { background: linear-gradient(90deg,#fffaf0,#fff5cc); border-left:4px solid #f59e0b; color:#553d00 }
+    .high { background: linear-gradient(90deg,#f0fff5,#dfffe7); border-left:4px solid #0ea5a3; color:#064e3b }
+
+    .small-muted { color:#6b7280; font-size:13px; }
+    .rec-card { border-radius:10px; padding:12px; background:#ffffff; border:1px solid rgba(15,23,42,.04); margin-top:10px; }
+
+    .icon-circle { width:44px; height:44px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#eff8ff,#e8f7ff); margin-right:10px; }
+
+    footer { text-align:center; color:#80848f; font-size:13px; margin-top:18px; }
+
+    /* subtle loading animation for button */
+    .spinner-border-sm { width:18px; height:18px; border-width:2px; }
+
+    /* responsive */
+    @media (max-width:560px){
+      body{ padding:18px }
+      .app-card{ padding:18px }
+    }
   </style>
 </head>
-
 <body>
 
-<div class="container">
-  <div class="row justify-content-center">
-    <div class="col-md-6">
+  <!-- animated background blobs -->
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
 
-      <div class="card shadow">
-        <h2 class="text-center mb-3">🌱 Soil Moisture Predictor</h2>
+  <div class="app-card container">
+    <div class="row">
+      <div class="col-12 text-center">
+        <h1>🌿 Soil Moisture Predictor</h1>
+        <div class="subtitle">Predict soil moisture & get recommendations — crops, fertilizer & actions</div>
+      </div>
+    </div>
 
-        <!-- Weather Auto Fill -->
-        <button class="btn btn-info w-100 mb-3" onclick="fillWeather()">🔄 Auto-Fill Weather Data</button>
+    <!-- controls -->
+    <div class="row g-2 mt-2">
+      <div class="col-12 text-center mb-2">
+        <button class="btn btn-info btn-main w-100" id="btn-weather"><i class="fa-solid fa-cloud-sun-rain me-2"></i> Auto-Fill Weather Data</button>
+      </div>
 
-        <!-- Inputs -->
+      <div class="col-md-6">
         <label>Temperature (°C)</label>
         <input id="temperature" class="form-control" type="number" value="25">
-
-        <label class="mt-2">Humidity (%)</label>
+      </div>
+      <div class="col-md-6">
+        <label>Humidity (%)</label>
         <input id="humidity" class="form-control" type="number" value="60">
+      </div>
 
-        <label class="mt-2">Rainfall (mm)</label>
+      <div class="col-md-6">
+        <label>Rainfall (mm)</label>
         <input id="rainfall" class="form-control" type="number" value="4">
-
-        <label class="mt-2">Soil Type (Manual)</label>
+      </div>
+      <div class="col-md-6">
+        <label>Soil Type (Manual)</label>
         <select id="soil_type" class="form-control">
           <option value="0">Sandy</option>
           <option value="1" selected>Loam</option>
           <option value="2">Clay</option>
         </select>
-
-        <!-- Image upload -->
-        <label class="mt-3">Upload Soil Image (auto-detect soil type)</label>
-        <input type="file" id="soilImage" class="form-control" accept="image/*" onchange="previewImage()">
-        <img id="preview" class="img-preview"/>
-
-        <button class="btn btn-primary w-100 mt-3" onclick="predict()">🔍 Predict Moisture</button>
-
-        <!-- Result -->
-        <div id="moistureResult" class="result-box mt-3" style="display:none"></div>
-        <div id="actionResult" class="result-box mt-2 bg-light border" style="display:none"></div>
-
       </div>
 
-      <div class="footer">Made with ❤️ for Smart Farming</div>
+      <div class="col-12">
+        <label>Upload Soil Image (auto-detect soil type)</label>
+        <input id="soilImage" class="form-control" type="file" accept="image/*">
+      </div>
+
+      <div class="col-12 text-center mt-2">
+        <button id="btn-predict" class="btn btn-primary btn-main w-100"><i class="fa-solid fa-magnifying-glass me-2"></i> Predict Moisture</button>
+      </div>
+
+      <!-- results -->
+      <div class="col-12">
+        <div id="moistBox" class="result low" style="display:none;">
+          <div style="display:flex; align-items:center;">
+            <div class="icon-circle"><i class="fa-solid fa-droplet fa-lg" style="color:#0077cc"></i></div>
+            <div>
+              <div id="moistText" style="font-weight:700; font-size:16px;">Moisture: --</div>
+              <div class="small-muted" id="catText">Category: --</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="actionCard" class="rec-card" style="display:none;">
+          <div style="display:flex; align-items:flex-start;">
+            <div class="me-2"><i class="fa-solid fa-water fa-2x" style="color:#2b9cff"></i></div>
+            <div>
+              <div id="actionText" style="font-weight:600;">Recommended action will show here.</div>
+              <div class="small-muted" id="explainText">Brief explanation of why.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- crop & fertilizer recommendations -->
+        <div id="recGrid" class="mt-3" style="display:none;">
+          <div class="row g-2">
+            <div class="col-md-6">
+              <div class="rec-card">
+                <div style="display:flex; align-items:center;">
+                  <div class="me-3"><i class="fa-solid fa-seedling fa-2x" style="color:#16a34a"></i></div>
+                  <div>
+                    <div style="font-weight:700">Recommended Crops</div>
+                    <div class="small-muted" id="cropList">--</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="rec-card">
+                <div style="display:flex; align-items:center;">
+                  <div class="me-3"><i class="fa-solid fa-bacterium fa-2x" style="color:#c084fc"></i></div>
+                  <div>
+                    <div style="font-weight:700">Fertilizer Tips</div>
+                    <div class="small-muted" id="fertList">--</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <footer>Made with ❤️ for Smart Farming</footer>
+      </div>
     </div>
   </div>
-</div>
 
 <script>
-const API = "https://soil-moisture-backend-r7m2.onrender.com";
+/*
+  Replace API variable if you deploy backend to Render.
+  For local testing keep http://127.0.0.1:8000
+  When deployed to Render replace with your Render URL.
+*/
+const API = "https://soil-moisture-backend-r7m2.onrender.com"; // <--- change if needed
 
-function previewImage() {
-  const file = document.getElementById("soilImage").files[0];
-  const img = document.getElementById("preview");
-  img.src = URL.createObjectURL(file);
-  img.style.display = "block";
+// Utility: map category to simple tag
+function categoryTag(val) {
+  if (val < 15) return "Low (Dry)";
+  if (val < 30) return "Medium (Optimal)";
+  return "High (Wet)";
 }
 
-// Auto Fill Weather
-async function fillWeather() {
-  alert("This will use your location – click Allow if asked.");
-
-  navigator.geolocation.getCurrentPosition(async pos => {
-    const lat = pos.coords.latitude;
-    const lon = pos.coords.longitude;
-
-    // FREE weather API
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
-
-    const res = await fetch(url);
-    const data = await res.json();
-
-    document.getElementById("temperature").value = data.current_weather.temperature;
-    document.getElementById("humidity").value = 60; 
-    document.getElementById("rainfall").value = 3;
-  });
-}
-
-// Predict Moisture
-async function predict() {
-  let soilType = parseInt(document.getElementById("soil_type").value);
-
-  // If image selected → auto-detect soil color
-  const fileInput = document.getElementById("soilImage");
-  if (fileInput.files.length > 0) {
-    const formData = new FormData();
-    formData.append("file", fileInput.files[0]);
-
-    const resp = await fetch(`${API}/upload`, {
-      method: "POST",
-      body: formData
-    });
-
-    const soilData = await resp.json();
-    soilType = soilData.soil_type;
-    document.getElementById("soil_type").value = soilType;
-  }
-
-  const body = {
-    temperature: parseFloat(document.getElementById("temperature").value),
-    humidity: parseFloat(document.getElementById("humidity").value),
-    rainfall: parseFloat(document.getElementById("rainfall").value),
-    soil_type: soilType
-  };
-
-  const resp = await fetch(`${API}/predict`, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(body)
-  });
-
-  const data = await resp.json();
-
-  const box = document.getElementById("moistureResult");
-  const action = document.getElementById("actionResult");
-
-  // Color code
-  box.className = "result-box";
-  if (data.category.includes("Low")) box.classList.add("low");
-  if (data.category.includes("Medium")) box.classList.add("medium");
-  if (data.category.includes("High")) box.classList.add("high");
-
-  box.style.display = "block";
-  action.style.display = "block";
-
-  box.innerHTML = `<b>Moisture:</b> ${data.moisture}% <br> <b>Category:</b> ${data.category}`;
-
-  // Recommended Actions
-  if (data.category.includes("Low")) {
-    action.innerHTML = "💧 Soil is dry. <b>Irrigation needed immediately.</b>";
-  } else if (data.category.includes("Medium")) {
-    action.innerHTML = "🌿 Moisture is optimal. <b>No action required.</b>";
+// Crop recommendation logic (rules, simple & explainable)
+function recommendCrops(category, soil_type, temp) {
+  // category: 'Low', 'Medium', 'High' text
+  // soil_type: 0 sandy,1 loam,2 clay
+  let crops = [];
+  if (category.includes("Low")) {
+    // dry tolerant
+    crops = ["Millet", "Sorghum (Jowar)", "Pearl millet", "Groundnut", "Chickpea"];
+  } else if (category.includes("Medium")) {
+    crops = ["Tomato", "Okra", "Maize", "Wheat", "Vegetables (lettuce, spinach)"];
   } else {
-    action.innerHTML = "⚠ Soil wet. <b>Reduce watering or check drainage.</b>";
+    // wet tolerant
+    crops = ["Rice", "Taro", "Sugarcane", "Paddy varieties", "Lotus"];
   }
+  // tweak by soil_type
+  if (soil_type == 0) crops = crops.slice(0,4); // sandy - prefer hardy
+  if (soil_type == 2) crops = crops.slice(0,5); // clay supports heavier crops
+  return crops.join(", ");
 }
+
+// Fertilizer recommendation logic
+function recommendFertilizer(soil_type, moisture_cat) {
+  // simple guidance: not replacing lab test — only general tips
+  if (soil_type == 0) { // sandy
+    return "Sandy soil: add organic matter (compost), apply slow-release NPK, mulch to retain moisture.";
+  }
+  if (soil_type == 1) { // loam
+    return "Loam: balanced NPK as per crop; add compost seasonally to maintain structure.";
+  }
+  // clay
+  if (moisture_cat.includes("High")) {
+    return "Clay & wet: improve drainage, add gypsum if sodium is present, use lighter doses of N-rich fertilizer and increase organic matter.";
+  }
+  return "Clay: add organic matter and consider gypsum to improve structure; avoid heavy fertilizer after rain.";
+}
+
+// Quick small UI helpers
+function showResultBox(categoryClass) {
+  const box = document.getElementById("moistBox");
+  box.className = "result " + categoryClass;
+  box.classList.add("show");
+  box.style.display = "block";
+}
+function hideResults() {
+  document.getElementById("moistBox").style.display = "none";
+  document.getElementById("actionCard").style.display = "none";
+  document.getElementById("recGrid").style.display = "none";
+}
+
+// Weather autofill using geolocation + open-meteo (no API key)
+document.getElementById("btn-weather").addEventListener("click", async () => {
+  if (!navigator.geolocation) { alert("Geolocation not supported"); return; }
+  const btn = document.getElementById("btn-weather");
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Fetching...';
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = pos.coords.latitude, lon = pos.coords.longitude;
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relativehumidity_2m`;
+      const r = await fetch(url);
+      const j = await r.json();
+      // current temp:
+      const temp = j.current_weather?.temperature ?? parseFloat(document.getElementById("temperature").value);
+      document.getElementById("temperature").value = temp;
+      // humidity - open-meteo doesn't always include current humidity in summary; fall back:
+      document.getElementById("humidity").value = 60;
+      // rainfall - set a small default or use hourly precipitation if available
+      document.getElementById("rainfall").value = 3;
+    } catch(e){
+      console.warn(e);
+      alert("Weather fetch failed — using defaults.");
+    } finally {
+      btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-sun-rain me-2"></i> Auto-Fill Weather Data';
+    }
+  }, err => {
+    alert("Location permission needed for weather autofill.");
+    btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-sun-rain me-2"></i> Auto-Fill Weather Data';
+  });
+});
+
+// Predict button
+document.getElementById("btn-predict").addEventListener("click", async () => {
+  hideResults();
+  const btn = document.getElementById("btn-predict");
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Predicting...';
+
+  try {
+    let soilType = parseInt(document.getElementById("soil_type").value);
+    // if image selected -> upload image and get soil type
+    const fileInput = document.getElementById("soilImage");
+    if (fileInput.files && fileInput.files.length > 0){
+      const fd = new FormData();
+      fd.append("file", fileInput.files[0]);
+      const up = await fetch(`${API}/upload`, { method: "POST", body: fd });
+      if (!up.ok) throw new Error("Upload failed");
+      const ujson = await up.json();
+      if (ujson.soil_type !== undefined) {
+        soilType = parseInt(ujson.soil_type);
+        document.getElementById("soil_type").value = soilType;
+      }
+    }
+
+    // Prepare predict body
+    const body = {
+      temperature: parseFloat(document.getElementById("temperature").value),
+      humidity: parseFloat(document.getElementById("humidity").value),
+      rainfall: parseFloat(document.getElementById("rainfall").value),
+      soil_type: soilType
+    };
+
+    const resp = await fetch(`${API}/predict`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) {
+      const text = await resp.text();
+      alert("Server error: " + text);
+      return;
+    }
+    const data = await resp.json();
+
+    // populate results
+    const moist = data.moisture;
+    const cat = data.category;
+    document.getElementById("moistText").innerHTML = `Moisture: <span style="color:inherit; font-weight:700">${moist}%</span>`;
+    document.getElementById("catText").innerText = `Category: ${cat}`;
+
+    // show proper color class
+    if (cat.includes("Low")) showResultBox("low");
+    else if (cat.includes("Medium")) showResultBox("medium");
+    else showResultBox("high");
+
+    // action card
+    const actionText = document.getElementById("actionText");
+    const explainText = document.getElementById("explainText");
+    if (cat.includes("Low")) {
+      actionText.innerHTML = "💧 Soil is dry. <strong>Irrigate soon</strong>, consider mulching to retain moisture.";
+    } else if (cat.includes("Medium")) {
+      actionText.innerHTML = "🌿 Moisture is optimal. <strong>Monitor regularly</strong> and follow crop schedule.";
+    } else {
+      actionText.innerHTML = "⚠ Soil is wet. <strong>Avoid irrigation</strong> and check drainage.";
+    }
+    explainText.innerText = data.explanation || "Model-based estimate using input features.";
+
+    document.getElementById("actionCard").style.display = "block";
+
+    // Crop + Fertilizer recs
+    const crops = recommendCrops(cat, soilType, body.temperature);
+    const fert = recommendFertilizer(soilType, cat);
+    document.getElementById("cropList").innerText = crops;
+    document.getElementById("fertList").innerText = fert;
+    document.getElementById("recGrid").style.display = "block";
+
+    // show final
+    document.getElementById("moistBox").classList.add("show");
+
+  } catch (err) {
+    console.error(err);
+    alert("Prediction failed: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-magnifying-glass me-2"></i> Predict Moisture';
+  }
+});
+
 </script>
 
 </body>
