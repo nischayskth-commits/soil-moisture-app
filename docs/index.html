@@ -9,7 +9,7 @@
 
   <style>
     :root{
-      --card-bg: rgba(255,255,255,0.95);
+      --card-bg: rgba(255,255,255,0.96);
       --accent: #2b9cff;
       --muted: #6b7280;
     }
@@ -32,12 +32,10 @@
       background-size: cover;
       background-position: center;
       filter: brightness(.85);
-      opacity: 0.95;
+      opacity: 0.98;
       animation: slide 20s linear infinite;
     }
-    /* fallback single background */
     .bg-slideshow { background-image: url("images/soil1.jpg"); }
-    /* animate through 4 images using steps */
     @keyframes slide {
       0% { background-image: url("images/soil1.jpg"); }
       25% { background-image: url("images/soil2.jpg"); }
@@ -50,16 +48,16 @@
     .blob {
       position: fixed;
       filter: blur(70px);
-      opacity: .18;
-      z-index: 0;
+      opacity: .12;
+      z-index: 1;
       transform: translate3d(0,0,0);
       animation: floaty 12s ease-in-out infinite;
       border-radius: 50%;
       mix-blend-mode: screen;
       pointer-events:none;
     }
-    .blob.b1{ width:420px; height:420px; left:-120px; top:-80px; background: #d8f1ff; animation-duration:18s; z-index:1; }
-    .blob.b2{ width:360px; height:360px; right:-100px; bottom:-60px; background: #ffe6f0; animation-duration:16s; z-index:1; }
+    .blob.b1{ width:420px; height:420px; left:-120px; top:-80px; background: #d8f1ff; animation-duration:18s; }
+    .blob.b2{ width:360px; height:360px; right:-100px; bottom:-60px; background: #ffe6f0; animation-duration:16s; }
     @keyframes floaty {
       0% { transform: translateY(0px) translateX(0px) rotate(0deg); }
       50% { transform: translateY(-30px) translateX(18px) rotate(6deg); }
@@ -68,14 +66,15 @@
 
     /* main card */
     .app-card {
-      width: 100%; max-width:720px;
+      width: 100%; max-width:760px;
       background: var(--card-bg);
       border-radius: 18px;
-      box-shadow: 0 10px 30px rgba(15,23,42,0.08);
+      box-shadow: 0 10px 30px rgba(15,23,42,0.10);
       padding: 28px;
       position: relative;
       z-index: 2;
       transition: transform .18s ease, box-shadow .18s ease;
+      backdrop-filter: blur(4px);
     }
     .app-card:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(15,23,42,0.12); }
 
@@ -98,11 +97,11 @@
       transition: transform .18s cubic-bezier(.2,.9,.2,1), opacity .18s;
       opacity: 0; transform: translateY(8px);
     }
-    .result.show{ opacity:1; transform: translateY(0px); }
+    .result.show{ opacity:1; transform: translateY(0px); display:block; }
 
-    .low { background: linear-gradient(90deg,#fff5f5,#ffdede); border-left:4px solid #ff6b6b; color:#7a0c0c }
-    .medium { background: linear-gradient(90deg,#fffaf0,#fff5cc); border-left:4px solid #f59e0b; color:#553d00 }
-    .high { background: linear-gradient(90deg,#f0fff5,#dfffe7); border-left:4px solid #0ea5a3; color:#064e3b }
+    .low { background: linear-gradient(90deg,#fff5f5,#ffdede); border-left:4px solid #ff6b6b; color:#7a0c0c; }
+    .medium { background: linear-gradient(90deg,#fffaf0,#fff5cc); border-left:4px solid #f59e0b; color:#553d00; }
+    .high { background: linear-gradient(90deg,#f0fff5,#dfffe7); border-left:4px solid #0ea5a3; color:#064e3b; }
 
     .small-muted { color:#6b7280; font-size:13px; }
     .rec-card { border-radius:10px; padding:12px; background:#ffffff; border:1px solid rgba(15,23,42,.04); margin-top:10px; }
@@ -121,10 +120,8 @@
 </head>
 <body>
 
-  <!-- dynamic slideshow background -->
+  <!-- background & blobs -->
   <div class="bg-slideshow" aria-hidden="true"></div>
-
-  <!-- floating blobs -->
   <div class="blob b1" aria-hidden="true"></div>
   <div class="blob b2" aria-hidden="true"></div>
 
@@ -138,9 +135,9 @@
 
     <div class="row g-2 mt-2">
       <div class="col-12 text-center mb-2">
-        <button class="btn btn-info btn-main w-100" id="btn-weather">
-          <!-- small inline cloud-rain icon -->
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="vertical-align:middle; margin-right:8px" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 18a2 2 0 1 1-2-2 2 2 0 0 1 2 2zM7 18a2 2 0 1 1-2-2 2 2 0 0 1 2 2zM11 18a2 2 0 1 1-2-2 2 2 0 0 1 2 2z"/><path d="M20 16.58A5 5 0 0 0 18 6h-1.26A7 7 0 0 0 5 9a5 5 0 0 0 1 9h14z"/></svg>
+        <button class="btn btn-info btn-main w-100" id="btn-weather" title="Auto-fill weather using your location">
+          <!-- inline cloud-rain SVG -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="vertical-align:middle; margin-right:8px" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 16.58A5 5 0 0 0 18 6h-1.26A7 7 0 0 0 5 9a5 5 0 0 0 1 9h14z"/><circle cx="7" cy="18" r="1"/><circle cx="11" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>
           Auto-Fill Weather Data
         </button>
       </div>
@@ -250,17 +247,22 @@
   </div>
 
 <script>
-/* API: change this if your backend is deployed somewhere else */
-const API = "https://soil-moisture-backend-r7m2.onrender.com";// <-- for local testing
-// const API = "https://soil-moisture-backend-r7m2.onrender.com"; // <-- for deployed Render
+/*
+  API detection:
+  - If you open the page from GitHub Pages (site host includes github.io), use Render backend URL.
+  - For local testing (served as file:// you must run local backend), the code will try localhost.
+*/
+const RENDER_BACKEND = "https://soil-moisture-backend-r7m2.onrender.com"; // your deployed backend
+const API = (location.hostname.includes("github.io") || location.hostname.includes("render.com")) ? RENDER_BACKEND : "http://127.0.0.1:8000";
 
+// utilities
 function categoryTag(val) {
   if (val < 15) return "Low (Dry)";
   if (val < 30) return "Medium (Optimal)";
   return "High (Wet)";
 }
 
-function recommendCrops(category, soil_type, temp) {
+function recommendCrops(category, soil_type) {
   let crops = [];
   if (category.includes("Low")) {
     crops = ["Millet", "Sorghum (Jowar)", "Pearl millet", "Groundnut", "Chickpea"];
@@ -287,9 +289,9 @@ function recommendFertilizer(soil_type, moisture_cat) {
   return "Clay: add organic matter and consider gypsum to improve structure.";
 }
 
-function showResultBox(categoryClass) {
+function setResultStyle(className) {
   const box = document.getElementById("moistBox");
-  box.className = "result " + categoryClass;
+  box.className = "result " + className;
   box.classList.add("show");
   box.style.display = "block";
 }
@@ -299,20 +301,31 @@ function hideResults() {
   document.getElementById("recGrid").style.display = "none";
 }
 
+// WEATHER AUTOFILL (open-meteo; no API key)
 document.getElementById("btn-weather").addEventListener("click", async () => {
   if (!navigator.geolocation) { alert("Geolocation not supported"); return; }
   const btn = document.getElementById("btn-weather");
-  btn.disabled = true; btn.innerText = 'Fetching...';
+  btn.disabled = true; btn.innerHTML = 'Fetching…';
   navigator.geolocation.getCurrentPosition(async pos => {
     const lat = pos.coords.latitude, lon = pos.coords.longitude;
     try {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relativehumidity_2m`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relativehumidity_2m,precipitation`;
       const r = await fetch(url);
+      if (!r.ok) throw new Error("Weather fetch failed");
       const j = await r.json();
       const temp = j.current_weather?.temperature ?? parseFloat(document.getElementById("temperature").value);
       document.getElementById("temperature").value = temp;
-      document.getElementById("humidity").value = 60;
-      document.getElementById("rainfall").value = 3;
+      // humidity: take nearest hourly now if exists
+      let humidity = 60;
+      if (j.hourly && j.hourly.relativehumidity_2m && j.hourly.time) {
+        // pick the first hourly index (closest)
+        humidity = j.hourly.relativehumidity_2m[0] ?? humidity;
+      }
+      document.getElementById("humidity").value = humidity;
+      // rainfall: use hourly precipitation if available
+      let rain = 0;
+      if (j.hourly && j.hourly.precipitation) rain = j.hourly.precipitation[0] ?? 0;
+      document.getElementById("rainfall").value = Math.round(rain * 10) / 10;
     } catch(e){
       console.warn(e);
       alert("Weather fetch failed — using defaults.");
@@ -325,19 +338,26 @@ document.getElementById("btn-weather").addEventListener("click", async () => {
   });
 });
 
+// PREDICT handler
 document.getElementById("btn-predict").addEventListener("click", async () => {
   hideResults();
   const btn = document.getElementById("btn-predict");
   btn.disabled = true;
   btn.innerHTML = 'Predicting...';
+
   try {
     let soilType = parseInt(document.getElementById("soil_type").value);
     const fileInput = document.getElementById("soilImage");
+
+    // if image uploaded, call /upload to auto-detect soil type
     if (fileInput.files && fileInput.files.length > 0) {
       const fd = new FormData();
       fd.append("file", fileInput.files[0]);
       const up = await fetch(`${API}/upload`, { method: "POST", body: fd });
-      if (!up.ok) throw new Error("Upload failed");
+      if (!up.ok) {
+        const txt = await up.text();
+        throw new Error("Image upload failed: " + txt);
+      }
       const ujson = await up.json();
       if (ujson.soil_type !== undefined) {
         soilType = parseInt(ujson.soil_type);
@@ -352,42 +372,60 @@ document.getElementById("btn-predict").addEventListener("click", async () => {
       soil_type: soilType
     };
 
+    // call /predict
     const resp = await fetch(`${API}/predict`, {
       method: "POST",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify(body)
     });
+
     if (!resp.ok) {
       const text = await resp.text();
-      alert("Server error: " + text);
-      return;
+      throw new Error("Server error: " + text);
     }
     const data = await resp.json();
 
-    const moist = data.moisture;
-    const cat = data.category;
+    // display results
+    const moist = parseFloat(data.moisture);
+    const cat = data.category ?? categoryTag(moist);
     document.getElementById("moistText").innerHTML = `Moisture: <span style="color:inherit; font-weight:700">${moist}%</span>`;
     document.getElementById("catText").innerText = `Category: ${cat}`;
 
-    if (cat.includes("Low")) showResultBox("low");
-    else if (cat.includes("Medium")) showResultBox("medium");
-    else showResultBox("high");
+    if (cat.includes("Low")) setResultStyle("low");
+    else if (cat.includes("Medium")) setResultStyle("medium");
+    else setResultStyle("high");
 
-    if (cat.includes("Low")) {
-      actionText = "💧 Soil is dry. Irrigate soon.";
+    // SMART action logic (uses multiple inputs)
+    let actionText = "";
+    let explain = "";
+    // If very low moisture OR low + low rainfall -> irrigate urgent
+    if (moist < 12 || (cat.includes("Low") && body.rainfall < 5)) {
+      actionText = "💧 Soil is dry. Irrigate soon (small, frequent doses) and apply mulch to retain moisture.";
+      explain = "Low predicted moisture with little recent rainfall — irrigate and mulch.";
     } else if (cat.includes("Medium")) {
-      actionText = "🌿 Moisture is optimal. Monitor regularly.";
+      actionText = "🌿 Moisture is optimal. Monitor regularly and follow crop schedule.";
+      explain = "Conditions are within the model's optimal range.";
     } else {
-      actionText = "⚠ Soil is wet. Avoid irrigation.";
+      // High moisture
+      if (body.rainfall > 10) {
+        actionText = "⚠ Soil is wet after rain. Pause irrigation and check drainage.";
+        explain = "High moisture and recent rainfall — avoid over-irrigation.";
+      } else {
+        actionText = "⚠ Soil is wet. Check field drains and avoid watering until it lowers.";
+        explain = "Model predicts high moisture — verify field conditions.";
+      }
     }
-    document.getElementById("actionText").innerHTML = actionText;
-    document.getElementById("explainText").innerText = data.explanation || "Model-based estimate using input features.";
 
-    const crops = recommendCrops(cat, soilType, body.temperature);
+    document.getElementById("actionText").innerHTML = actionText;
+    document.getElementById("explainText").innerText = data.explanation || explain;
+
+    // Recs
+    const crops = recommendCrops(cat, soilType);
     const fert = recommendFertilizer(soilType, cat);
     document.getElementById("cropList").innerText = crops;
     document.getElementById("fertList").innerText = fert;
     document.getElementById("recGrid").style.display = "block";
+    document.getElementById("actionCard").style.display = "block";
 
   } catch (err) {
     console.error(err);
