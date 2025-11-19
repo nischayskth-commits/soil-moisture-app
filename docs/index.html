@@ -3,85 +3,157 @@
 <head>
   <meta charset="utf-8"/>
   <title>Soil Moisture Predictor</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
   <style>
-    body { font-family: Arial; background:#f6f6f6; padding:20px; }
-    .card {
-      max-width:520px;
-      margin:20px auto;
-      background:#fff;
-      padding:20px;
-      border-radius:8px;
-      box-shadow:0 4px 10px rgba(0,0,0,0.05);
-    }
-    label { display:block; margin-top:10px; }
-    input, select { width:100%; padding:8px; margin-top:6px; box-sizing:border-box; }
-    button { margin-top:14px; padding:10px 16px; cursor:pointer; }
-    .result { margin-top:16px; padding:10px; background:#f0f8ff; border-radius:6px; }
+    body { background: #f4f7fe; padding: 40px; }
+    .card { border-radius: 20px; padding: 25px; }
+    .result-box { font-size: 18px; border-radius: 12px; padding: 15px; margin-top: 15px; }
+    #moistureResult.low { background: #ffe6e6; color: #cc0000; }
+    #moistureResult.medium { background: #fff3cd; color: #856404; }
+    #moistureResult.high { background: #e2f7e2; color: #0f8a0f; }
+    .footer { margin-top: 20px; font-size: 14px; color: #777; text-align:center; }
+    .img-preview { width: 150px; margin-top: 10px; border-radius: 8px; display:none; }
   </style>
 </head>
+
 <body>
 
-  <div class="card">
-    <h2>Soil Moisture Predictor</h2>
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
 
-    <label>Temperature (°C)
-      <input id="temperature" type="number" value="25">
-    </label>
+      <div class="card shadow">
+        <h2 class="text-center mb-3">🌱 Soil Moisture Predictor</h2>
 
-    <label>Humidity (%)
-      <input id="humidity" type="number" value="60">
-    </label>
+        <!-- Weather Auto Fill -->
+        <button class="btn btn-info w-100 mb-3" onclick="fillWeather()">🔄 Auto-Fill Weather Data</button>
 
-    <label>Rainfall (mm)
-      <input id="rainfall" type="number" value="4">
-    </label>
+        <!-- Inputs -->
+        <label>Temperature (°C)</label>
+        <input id="temperature" class="form-control" type="number" value="25">
 
-    <label>Soil Type
-      <select id="soil_type">
-        <option value="0">Sandy</option>
-        <option value="1" selected>Loam</option>
-        <option value="2">Clay</option>
-      </select>
-    </label>
+        <label class="mt-2">Humidity (%)</label>
+        <input id="humidity" class="form-control" type="number" value="60">
 
-    <button id="predictBtn">Predict Moisture</button>
+        <label class="mt-2">Rainfall (mm)</label>
+        <input id="rainfall" class="form-control" type="number" value="4">
 
-    <div id="result" class="result" style="display:none;"></div>
+        <label class="mt-2">Soil Type (Manual)</label>
+        <select id="soil_type" class="form-control">
+          <option value="0">Sandy</option>
+          <option value="1" selected>Loam</option>
+          <option value="2">Clay</option>
+        </select>
+
+        <!-- Image upload -->
+        <label class="mt-3">Upload Soil Image (auto-detect soil type)</label>
+        <input type="file" id="soilImage" class="form-control" accept="image/*" onchange="previewImage()">
+        <img id="preview" class="img-preview"/>
+
+        <button class="btn btn-primary w-100 mt-3" onclick="predict()">🔍 Predict Moisture</button>
+
+        <!-- Result -->
+        <div id="moistureResult" class="result-box mt-3" style="display:none"></div>
+        <div id="actionResult" class="result-box mt-2 bg-light border" style="display:none"></div>
+
+      </div>
+
+      <div class="footer">Made with ❤️ for Smart Farming</div>
+    </div>
   </div>
+</div>
 
 <script>
-document.getElementById("predictBtn").onclick = async function() {
-  const temp = parseFloat(document.getElementById("temperature").value);
-  const hum = parseFloat(document.getElementById("humidity").value);
-  const rain = parseFloat(document.getElementById("rainfall").value);
-  const soil = parseInt(document.getElementById("soil_type").value);
+const API = "https://soil-moisture-backend-r7m2.onrender.com";
 
-  const resDiv = document.getElementById("result");
-  resDiv.style.display = "block";
-  resDiv.innerText = "Sending request...";
+function previewImage() {
+  const file = document.getElementById("soilImage").files[0];
+  const img = document.getElementById("preview");
+  img.src = URL.createObjectURL(file);
+  img.style.display = "block";
+}
 
-  try {
-    const resp = await fetch("https://soil-moisture-backend-r7m2.onrender.com/predict", {
+// Auto Fill Weather
+async function fillWeather() {
+  alert("This will use your location – click Allow if asked.");
+
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
+
+    // FREE weather API
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    document.getElementById("temperature").value = data.current_weather.temperature;
+    document.getElementById("humidity").value = 60; 
+    document.getElementById("rainfall").value = 3;
+  });
+}
+
+// Predict Moisture
+async function predict() {
+  let soilType = parseInt(document.getElementById("soil_type").value);
+
+  // If image selected → auto-detect soil color
+  const fileInput = document.getElementById("soilImage");
+  if (fileInput.files.length > 0) {
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+
+    const resp = await fetch(`${API}/upload`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        temperature: temp,
-        humidity: hum,
-        rainfall: rain,
-        soil_type: soil
-      })
+      body: formData
     });
 
-    if (!resp.ok) throw new Error("Server returned " + resp.status);
-
-    const data = await resp.json();
-    resDiv.innerHTML = `<strong>Predicted moisture:</strong> ${data.moisture}% <br>
-                        <strong>Category:</strong> ${data.category}`;
-
-  } catch (err) {
-    resDiv.innerText = "Error: " + err;
+    const soilData = await resp.json();
+    soilType = soilData.soil_type;
+    document.getElementById("soil_type").value = soilType;
   }
-};
+
+  const body = {
+    temperature: parseFloat(document.getElementById("temperature").value),
+    humidity: parseFloat(document.getElementById("humidity").value),
+    rainfall: parseFloat(document.getElementById("rainfall").value),
+    soil_type: soilType
+  };
+
+  const resp = await fetch(`${API}/predict`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(body)
+  });
+
+  const data = await resp.json();
+
+  const box = document.getElementById("moistureResult");
+  const action = document.getElementById("actionResult");
+
+  // Color code
+  box.className = "result-box";
+  if (data.category.includes("Low")) box.classList.add("low");
+  if (data.category.includes("Medium")) box.classList.add("medium");
+  if (data.category.includes("High")) box.classList.add("high");
+
+  box.style.display = "block";
+  action.style.display = "block";
+
+  box.innerHTML = `<b>Moisture:</b> ${data.moisture}% <br> <b>Category:</b> ${data.category}`;
+
+  // Recommended Actions
+  if (data.category.includes("Low")) {
+    action.innerHTML = "💧 Soil is dry. <b>Irrigation needed immediately.</b>";
+  } else if (data.category.includes("Medium")) {
+    action.innerHTML = "🌿 Moisture is optimal. <b>No action required.</b>";
+  } else {
+    action.innerHTML = "⚠ Soil wet. <b>Reduce watering or check drainage.</b>";
+  }
+}
 </script>
 
 </body>
