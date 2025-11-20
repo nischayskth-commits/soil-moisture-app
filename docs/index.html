@@ -96,6 +96,7 @@
       border-radius:12px; padding:14px; margin-top:14px;
       transition: transform .18s cubic-bezier(.2,.9,.2,1), opacity .18s;
       opacity: 0; transform: translateY(8px);
+      display:none;
     }
     .result.show{ opacity:1; transform: translateY(0px); display:block; }
 
@@ -248,13 +249,30 @@
 
 <script>
 /*
-  API detection:
-  - If you open the page from GitHub Pages (site host includes github.io), use Render backend URL.
-  - For local testing (served as file:// you must run local backend), the code will try localhost.
+  Auto-detect API base:
+  - If page is hosted on github.io -> use Render backend (deployed)
+  - If localhost or file served locally -> use local backend at 127.0.0.1:8000
+  Update RENDER_BACKEND_URL to your deployed backend if necessary.
 */
-const API = "https://soil-moisture-backend-r7m2.onrender.com";
+const RENDER_BACKEND_URL = "https://soil-moisture-backend-r7m2.onrender.com";
+let API = RENDER_BACKEND_URL;
+try {
+  const host = window.location.hostname;
+  if (host === "127.0.0.1" || host === "localhost") {
+    API = "http://127.0.0.1:8000";
+  } else if (host.endsWith("github.io")) {
+    API = RENDER_BACKEND_URL;
+  } else {
+    // default to Render, but if you're testing locally change to localhost above
+    API = RENDER_BACKEND_URL;
+  }
+} catch (e) {
+  API = RENDER_BACKEND_URL;
+}
+
 // utilities
 function categoryTag(val) {
+  // new thresholds:
   if (val < 5) return "Low (Dry)";
   if (val < 12) return "Medium (Optimal)";
   return "High (Wet)";
@@ -313,16 +331,17 @@ document.getElementById("btn-weather").addEventListener("click", async () => {
       const j = await r.json();
       const temp = j.current_weather?.temperature ?? parseFloat(document.getElementById("temperature").value);
       document.getElementById("temperature").value = temp;
-      // humidity: take nearest hourly now if exists
+      // humidity: best-effort - use first hourly entry as fallback
       let humidity = 60;
-      if (j.hourly && j.hourly.relativehumidity_2m && j.hourly.time) {
-        // pick the first hourly index (closest)
+      if (j.hourly && j.hourly.relativehumidity_2m && j.hourly.relativehumidity_2m.length > 0) {
         humidity = j.hourly.relativehumidity_2m[0] ?? humidity;
       }
       document.getElementById("humidity").value = humidity;
-      // rainfall: use hourly precipitation if available
+      // rainfall: use first hourly precipitation (mm)
       let rain = 0;
-      if (j.hourly && j.hourly.precipitation) rain = j.hourly.precipitation[0] ?? 0;
+      if (j.hourly && j.hourly.precipitation && j.hourly.precipitation.length > 0) {
+        rain = j.hourly.precipitation[0] ?? 0;
+      }
       document.getElementById("rainfall").value = Math.round(rain * 10) / 10;
     } catch(e){
       console.warn(e);
@@ -384,8 +403,11 @@ document.getElementById("btn-predict").addEventListener("click", async () => {
     const data = await resp.json();
 
     // display results
-    const moist = parseFloat(data.moisture);
-    const cat = data.category ?? categoryTag(moist);
+    let moistRaw = parseFloat(data.moisture);
+    if (Number.isNaN(moistRaw)) moistRaw = 0;
+    const moist = Math.round(moistRaw * 100) / 100; // 2 decimals
+    const cat = (data.category && String(data.category).trim().length > 0) ? data.category : categoryTag(moist);
+
     document.getElementById("moistText").innerHTML = `Moisture: <span style="color:inherit; font-weight:700">${moist}%</span>`;
     document.getElementById("catText").innerText = `Category: ${cat}`;
 
@@ -398,8 +420,8 @@ document.getElementById("btn-predict").addEventListener("click", async () => {
     let explain = "";
     // If very low moisture OR low + low rainfall -> irrigate urgent
     if (moist < 12 || (cat.includes("Low") && body.rainfall < 5)) {
-      actionText = "💧 Soil is dry. Irrigate soon (small, frequent doses) and apply much to retain moisture.";
-      explain = "Low predicted moisture with little recent rainfall — irrigate and much.";
+      actionText = "💧 Soil is dry. Irrigate soon (small, frequent doses) and apply mulch to retain moisture.";
+      explain = "Low predicted moisture with little recent rainfall — irrigate and mulch.";
     } else if (cat.includes("Medium")) {
       actionText = "🌿 Moisture is optimal. Monitor regularly and follow crop schedule.";
       explain = "Conditions are within the model's optimal range.";
@@ -427,7 +449,8 @@ document.getElementById("btn-predict").addEventListener("click", async () => {
 
   } catch (err) {
     console.error(err);
-    alert("Prediction failed: " + err.message);
+    // Friendly error with advice
+    alert("Prediction failed: " + err.message + "\n\nIf you're testing locally make sure the backend is running and the API variable is set to http://127.0.0.1:8000");
   } finally {
     btn.disabled = false;
     btn.innerHTML = 'Predict Moisture';
