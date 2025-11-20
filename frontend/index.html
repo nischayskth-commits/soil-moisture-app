@@ -1,59 +1,171 @@
-<!doctype html>
+﻿<!doctype html>
 <html>
 <head>
   <meta charset="utf-8"/>
   <title>Soil Moisture Predictor</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     body { font-family: Arial; background:#f6f6f6; padding:20px; }
-    .card { max-width:520px; margin:20px auto; background:#fff; padding:20px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.05); }
+    .card { max-width:720px; margin:20px auto; background:#fff; padding:20px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.05); }
     label {display:block; margin-top:10px;}
     input, select { width:100%; padding:8px; margin-top:6px; box-sizing:border-box;}
-    button{ margin-top:14px; padding:10px 16px; }
-    .result{ margin-top:16px; padding:10px; background:#f0f8ff; border-radius:6px;}
+    button{ margin-top:14px; padding:10px 16px; cursor:pointer; }
+    .result{ margin-top:16px; padding:14px; background:#f0f8ff; border-radius:6px;}
+    .row { display:flex; gap:12px; }
+    .col { flex:1; }
+    .pill { padding:8px 12px; background:#eef6ff; border-radius:6px; margin-bottom:8px; display:inline-block; }
+    .cards { display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px; }
+    .info-box { background:white; padding:12px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.03); }
+    @media(max-width:700px){ .cards{ grid-template-columns:1fr } .row{ flex-direction:column } }
   </style>
 </head>
 <body>
   <div class="card">
     <h2>Soil Moisture Predictor</h2>
-    <label>Temperature (°C) <input id="temperature" type="number" value="25"></label>
-    <label>Humidity (%) <input id="humidity" type="number" value="60"></label>
-    <label>Rainfall (mm) <input id="rainfall" type="number" value="4"></label>
-    <label>Soil Type
-      <select id="soil_type">
-        <option value="0">Sandy</option>
-        <option value="1" selected>Loam</option>
-        <option value="2">Clay</option>
-      </select>
-    </label>
+
+    <div class="row">
+      <div class="col">
+        <label>Temperature (°C) <input id="temperature" type="number" value="25"></label>
+      </div>
+      <div class="col">
+        <label>Humidity (%) <input id="humidity" type="number" value="60"></label>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <label>Rainfall (mm) <input id="rainfall" type="number" value="4"></label>
+      </div>
+      <div class="col">
+        <label>Soil Type
+          <select id="soil_type">
+            <option value="0">Sandy</option>
+            <option value="1" selected>Loam</option>
+            <option value="2">Clay</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
     <button id="predictBtn">Predict Moisture</button>
 
-    <div id="result" class="result" style="display:none"></div>
+    <div id="result" class="result" style="display:block; margin-top:18px;">
+      <div id="summary" class="pill"><span id="moistText">Moisture: —</span> &nbsp; <span id="catText">Category: —</span></div>
+
+      <div class="info-box">
+        <strong id="actionText">—</strong>
+        <div id="explainText" style="color:#666; margin-top:8px;"></div>
+      </div>
+
+      <div class="cards">
+        <div class="info-box">
+          <strong>Recommended Crops</strong>
+          <div id="cropList" style="margin-top:8px; color:#444"></div>
+        </div>
+        <div class="info-box">
+          <strong>Fertilizer Tips</strong>
+          <div id="fertList" style="margin-top:8px; color:#444"></div>
+        </div>
+      </div>
+    </div>
   </div>
+
 <script>
-document.getElementById("predictBtn").onclick = async function() {
-  const temp = parseFloat(document.getElementById("temperature").value);
-  const hum = parseFloat(document.getElementById("humidity").value);
-  const rain = parseFloat(document.getElementById("rainfall").value);
-  const soil = parseInt(document.getElementById("soil_type").value);
+// ---------- API (local testing) ----------
+const API = (location.hostname === "127.0.0.1" || location.hostname === "localhost")
+  ? "http://127.0.0.1:8000"
+  : "https://soil-moisture-backend-r7m2.onrender.com";
+
+// ---------- helper recommendation functions ----------
+function recommendCrops(category, soilType) {
+  const bySoil = {
+    0: ["Millet","Sorghum (Jowar)","Groundnut","Pearl millet"],
+    1: ["Wheat","Rice","Maize","Vegetables"],
+    2: ["Paddy (Rice)","Mustard","Sugarcane","Cotton"]
+  };
+  if (!category) return bySoil[soilType] || bySoil[1];
+  if (category.includes("Low")) {
+    return (soilType===0) ? ["Millet","Sorghum","Groundnut"] : ["Maize","Pearl millet"];
+  } else if (category.includes("Medium")) {
+    return bySoil[soilType];
+  } else {
+    return (soilType===2) ? ["Rice","Sugarcane"] : ["Rice","Taro"];
+  }
+}
+
+function recommendFertilizer(soilType, category) {
+  if (soilType === 0) {
+    return "Sandy: add organic matter (compost), slow-release NPK, mulch to retain moisture.";
+  }
+  if (soilType === 2) {
+    return "Clay: add organic matter, gypsum to improve structure and drainage, avoid waterlogging.";
+  }
+  if (category && category.includes("Low")) {
+    return "Use organic matter and balanced NPK; consider mulching to conserve moisture.";
+  }
+  return "Balanced NPK and organic matter; test soil periodically.";
+}
+
+// ---------- UI helpers ----------
+function setResultText(moisture, category, explanation, recommendation) {
+  const moistText = document.getElementById("moistText");
+  const catText = document.getElementById("catText");
+  const actionText = document.getElementById("actionText");
+  const explainText = document.getElementById("explainText");
+  const cropList = document.getElementById("cropList");
+  const fertList = document.getElementById("fertList");
+
+  if (moistText) moistText.innerHTML = `Moisture: <strong>${Number(moisture).toFixed(2)}%</strong>`;
+  if (catText) catText.innerText = `Category: ${category}`;
+  if (explainText) explainText.innerText = explanation || "";
+  if (actionText) actionText.innerText = recommendation || "";
+
+  const soilTypeInput = document.getElementById("soil_type");
+  const soilType = soilTypeInput ? parseInt(soilTypeInput.value, 10) : 1;
+  const crops = recommendCrops(category, soilType);
+  const fert = recommendFertilizer(soilType, category);
+
+  if (cropList) cropList.innerText = Array.isArray(crops) ? crops.join(", ") : crops;
+  if (fertList) fertList.innerText = fert;
+}
+
+// ---------- Predict handler ----------
+document.getElementById("predictBtn").addEventListener("click", async function () {
+  const temp = Number(document.getElementById("temperature").value);
+  const hum = Number(document.getElementById("humidity").value);
+  const rain = Number(document.getElementById("rainfall").value);
+  const soil = parseInt(document.getElementById("soil_type").value, 10);
 
   const resDiv = document.getElementById("result");
   resDiv.style.display = "block";
-  resDiv.innerText = "Sending request...";
+  resDiv.querySelector("#moistText").innerText = "Sending request...";
 
   try {
-    const resp = await fetch("https://soil-moisture-backend-r7m2.onrender.com/predict", {...})
+    const payload = { temperature: temp, humidity: hum, rainfall: rain, soil_type: soil };
+    console.log("PREDICT: request body ->", payload);
 
+    const resp = await fetch(`${API}/predict`, {
       method: "POST",
       headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({temperature: temp, humidity: hum, rainfall: rain, soil_type: soil})
+      body: JSON.stringify(payload)
     });
-    if (!resp.ok) throw new Error('Server returned ' + resp.status);
+
+    console.log("PREDICT: response status ->", resp.status, resp.statusText);
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error("Server returned " + resp.status + " : " + txt);
+    }
+
     const data = await resp.json();
-    resDiv.innerHTML = `<strong>Predicted moisture:</strong> ${data.moisture}% <br><strong>Category:</strong> ${data.category}`;
+    console.log("PREDICT: response json ->", data);
+
+    setResultText(data.moisture, data.category, data.explanation, data.recommendation);
   } catch (err) {
-    resDiv.innerText = "Error: " + err;
+    console.error("Prediction failed:", err);
+    document.getElementById("moistText").innerText = "Error: " + err.message;
   }
-};
+});
 </script>
 </body>
 </html>
