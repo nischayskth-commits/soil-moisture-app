@@ -24,6 +24,32 @@ app.add_middleware(
 MODEL_PATH = os.path.join("models", "soil_moisture_rf.pkl")
 model = None
 
+# -----------------------------
+# OPTIONAL: download model at startup if missing
+# -----------------------------
+# If you do not want to commit the model into the repo (or it's large),
+# upload the model file to a stable URL (S3, Dropbox direct link, Google Drive direct, etc.)
+# then set the Render env var MODEL_URL to that direct download link.
+#
+# Example (set this on Render):
+#   MODEL_URL = https://my-bucket.s3.amazonaws.com/soil_moisture_rf.pkl
+#
+# This block will attempt to download the model file once at startup if
+# the file does not exist locally.
+MODEL_URL = os.environ.get("MODEL_URL", "")
+if not os.path.exists(MODEL_PATH) and MODEL_URL:
+    try:
+        print("MODEL URL provided — attempting download:", MODEL_URL)
+        os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
+        r = requests.get(MODEL_URL, timeout=60)
+        r.raise_for_status()
+        with open(MODEL_PATH, "wb") as f:
+            f.write(r.content)
+        print("MODEL downloaded to", MODEL_PATH)
+    except Exception as e:
+        print("MODEL DOWNLOAD ERROR:", e)
+
+
 def load_model():
     global model
     try:
