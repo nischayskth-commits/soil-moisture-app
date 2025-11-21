@@ -116,6 +116,17 @@
       body{ padding:18px }
       .app-card{ padding:18px }
     }
+
+    /* image-upload error message */
+    .image-error {
+      color: #b91c1c;
+      background: #fff1f2;
+      border-left:4px solid #fca5a5;
+      padding:8px 12px;
+      border-radius:8px;
+      margin-top:8px;
+      display:none;
+    }
   </style>
 </head>
 <body>
@@ -136,7 +147,6 @@
     <div class="row g-2 mt-2">
       <div class="col-12 text-center mb-2">
         <button class="btn btn-info btn-main w-100" id="btn-weather" title="Auto-fill weather using your location">
-          <!-- inline cloud-rain SVG -->
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="vertical-align:middle; margin-right:8px" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 16.58A5 5 0 0 0 18 6h-1.26A7 7 0 0 0 5 9a5 5 0 0 0 1 9h14z"/><circle cx="7" cy="18" r="1"/><circle cx="11" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>
           Auto-Fill Weather Data
         </button>
@@ -164,24 +174,19 @@
         </select>
       </div>
 
-      <div class="col-12">
-        <label>Upload Soil Image (auto-detect soil type)</label>
-        <input id="soilImage" class="form-control" type="file" accept="image/*">
-      </div>
-
+      <!-- MAIN predict button (NO image logic here) -->
       <div class="col-12 text-center mt-2">
         <button id="btn-predict" class="btn btn-primary btn-main w-100">
-          <!-- magnifier SVG -->
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="vertical-align:middle; margin-right:8px" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 21l-4.35-4.35"/><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
           Predict Moisture
         </button>
       </div>
 
+      <!-- results -->
       <div class="col-12">
         <div id="moistBox" class="result low" style="display:none;">
           <div style="display:flex; align-items:center;">
             <div class="icon-circle" id="icon-tint">
-              <!-- droplet SVG -->
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#0077cc" aria-hidden="true"><path d="M12 2s-6 7.5-6 11a6 6 0 1 0 12 0c0-3.5-6-11-6-11z"/></svg>
             </div>
             <div>
@@ -194,7 +199,6 @@
         <div id="actionCard" class="rec-card" style="display:none;">
           <div style="display:flex; align-items:flex-start;">
             <div class="me-2">
-              <!-- waves SVG -->
               <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="#2b9cff" aria-hidden="true"><path d="M2 12c3 0 3 3 6 3s3-3 6-3 3 3 6 3v6H2v-6z"/></svg>
             </div>
             <div>
@@ -210,7 +214,6 @@
               <div class="rec-card">
                 <div style="display:flex; align-items:center;">
                   <div class="me-3">
-                    <!-- seedling SVG -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="#16a34a" aria-hidden="true"><path d="M12 2s-1.5 4-3 6c-1.6 2.2-3 3-3 6 0 3 3 4 6 4s6-1 6-4c0-3-1.4-3.8-3-6C13.5 6 12 2 12 2z"/></svg>
                   </div>
                   <div>
@@ -225,7 +228,6 @@
               <div class="rec-card">
                 <div style="display:flex; align-items:center;">
                   <div class="me-3">
-                    <!-- fertilizer gear-like svg -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="#c084fc" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8 4a7.9 7.9 0 0 0-.2-2l2.1-1.6-2-3.4-2.6 1a8 8 0 0 0-1.7-1L14 2h-4l-.6 2.1c-.6.2-1.2.6-1.7 1L4.1 4.2 2 7.6 4.1 9.2c-.1.6-.1 1.2 0 2L2 13v4l2 .6c.2.7.6 1.3 1.1 1.9l-1 2 3.4 2 1.1-1.6c.6.2 1.2.3 1.8.3s1.2-.1 1.8-.3L16 22l1-2c.5-.6.9-1.2 1.1-1.9l2-.6v-4z"/></svg>
                   </div>
                   <div>
@@ -244,24 +246,34 @@
         </footer>
       </div>
     </div>
+
+    <!-- SEPARATE Image uploader area -->
+    <div class="row mt-4">
+      <div class="col-12">
+        <label>Upload Soil Photo (image-only) — use this for image-based prediction</label>
+        <input id="soilImageSeparate" class="form-control" type="file" accept="image/*">
+        <div class="image-error" id="imgError">Photo unsuitable — please upload a clear soil image (JPG/PNG).</div>
+      </div>
+      <div class="col-12 text-center mt-2">
+        <button id="btn-predict-image" class="btn btn-outline-primary btn-main w-50">
+          Predict from Image
+        </button>
+      </div>
+    </div>
+
   </div>
 
 <script>
-/*
-  API detection:
-  - If you open the page from GitHub Pages (site host includes github.io), use Render backend URL.
-  - For local testing (served as file:// you must run local backend), the code will try localhost.
-*/
-const RENDER_BACKEND = "https://soil-moisture-backend-r7m2.onrender.com"; // your deployed backend
+/* API detection */
+const RENDER_BACKEND = "https://soil-moisture-backend-r7m2.onrender.com";
 const API = (location.hostname.includes("github.io") || location.hostname.includes("render.com")) ? RENDER_BACKEND : "http://127.0.0.1:8000";
 
-// utilities
+/* helpers */
 function categoryTag(val) {
   if (val < 15) return "Low (Dry)";
   if (val < 30) return "Medium (Optimal)";
   return "High (Wet)";
 }
-
 function recommendCrops(category, soil_type) {
   let crops = [];
   if (category.includes("Low")) {
@@ -275,7 +287,6 @@ function recommendCrops(category, soil_type) {
   if (soil_type == 2) crops = crops.slice(0,5);
   return crops.join(", ");
 }
-
 function recommendFertilizer(soil_type, moisture_cat) {
   if (soil_type == 0) {
     return "Sandy: add organic matter (compost), slow-release NPK, mulch to retain moisture.";
@@ -288,15 +299,11 @@ function recommendFertilizer(soil_type, moisture_cat) {
   }
   return "Clay: add organic matter and consider gypsum to improve structure.";
 }
-
 function setResultStyle(className) {
   const box = document.getElementById("moistBox");
-  // remove old classes
   box.classList.remove("low","medium","high","show");
   box.className = "result";
-  // add new
   box.classList.add(className);
-  // ensure show class and visible
   box.classList.add("show");
   box.style.display = "block";
 }
@@ -306,7 +313,7 @@ function hideResults() {
   document.getElementById("recGrid").style.display = "none";
 }
 
-// WEATHER AUTOFILL (open-meteo; no API key)
+/* WEATHER autofill (same as before) */
 document.getElementById("btn-weather").addEventListener("click", async () => {
   if (!navigator.geolocation) { alert("Geolocation not supported"); return; }
   const btn = document.getElementById("btn-weather");
@@ -320,13 +327,11 @@ document.getElementById("btn-weather").addEventListener("click", async () => {
       const j = await r.json();
       const temp = j.current_weather?.temperature ?? parseFloat(document.getElementById("temperature").value);
       document.getElementById("temperature").value = temp;
-      // humidity: take nearest hourly now if exists
       let humidity = 60;
       if (j.hourly && j.hourly.relativehumidity_2m && j.hourly.time) {
         humidity = j.hourly.relativehumidity_2m[0] ?? humidity;
       }
       document.getElementById("humidity").value = humidity;
-      // rainfall: use hourly precipitation if available
       let rain = 0;
       if (j.hourly && j.hourly.precipitation) rain = j.hourly.precipitation[0] ?? 0;
       document.getElementById("rainfall").value = Math.round(rain * 10) / 10;
@@ -342,70 +347,41 @@ document.getElementById("btn-weather").addEventListener("click", async () => {
   });
 });
 
-// PREDICT handler
+/* MAIN predict (numeric input only) */
 document.getElementById("btn-predict").addEventListener("click", async () => {
   hideResults();
   const btn = document.getElementById("btn-predict");
-  btn.disabled = true;
-  btn.innerHTML = 'Predicting...';
+  btn.disabled = true; btn.innerHTML = 'Predicting...';
 
   try {
-    let soilType = parseInt(document.getElementById("soil_type").value);
-    const fileInput = document.getElementById("soilImage");
-
-    // if image uploaded, call /upload to auto-detect soil type
-    if (fileInput.files && fileInput.files.length > 0) {
-      const fd = new FormData();
-      fd.append("file", fileInput.files[0]);
-      const up = await fetch(`${API}/upload`, { method: "POST", body: fd });
-      if (!up.ok) {
-        const txt = await up.text();
-        throw new Error("Image upload failed: " + txt);
-      }
-      const ujson = await up.json();
-      if (ujson.soil_type !== undefined) {
-        soilType = parseInt(ujson.soil_type);
-        document.getElementById("soil_type").value = soilType;
-      }
-    }
-
     const body = {
       temperature: parseFloat(document.getElementById("temperature").value) || 0,
       humidity: parseFloat(document.getElementById("humidity").value) || 0,
       rainfall: parseFloat(document.getElementById("rainfall").value) || 0,
-      soil_type: soilType
+      soil_type: parseInt(document.getElementById("soil_type").value) || 1
     };
 
-    // call /predict
     const resp = await fetch(`${API}/predict`, {
       method: "POST",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify(body)
     });
-
     if (!resp.ok) {
       const text = await resp.text();
       throw new Error("Server error: " + text);
     }
     const data = await resp.json();
-
-    // parse moisture safely
     const moist = (data && data.moisture !== undefined) ? Number(data.moisture) : NaN;
     const moistureText = Number.isFinite(moist) ? `${moist.toFixed(2)}%` : (data.moisture ?? "--");
-
     const cat = (data && data.category) ? data.category : (Number.isFinite(moist) ? categoryTag(moist) : "Unknown");
-
     document.getElementById("moistText").innerHTML = `Moisture: <span style="color:inherit; font-weight:700">${moistureText}</span>`;
     document.getElementById("catText").innerText = `Category: ${cat}`;
-
-    // apply style based on category
     if (cat.includes("Low")) setResultStyle("low");
     else if (cat.includes("Medium")) setResultStyle("medium");
     else setResultStyle("high");
 
-    // SMART action logic (uses multiple inputs)
-    let actionText = "";
-    let explain = "";
+    // action + explanation
+    let actionText = "", explain = "";
     if (Number.isFinite(moist) && (moist < 12 || (cat.includes("Low") && body.rainfall < 5))) {
       actionText = "💧 Soil is dry. Irrigate soon (small, frequent doses) and apply mulch to retain moisture.";
       explain = data.explanation || "Low predicted moisture with little recent rainfall — irrigate and mulch.";
@@ -413,7 +389,6 @@ document.getElementById("btn-predict").addEventListener("click", async () => {
       actionText = "🌿 Moisture is optimal. Monitor regularly and follow crop schedule.";
       explain = data.explanation || "Conditions are within the model's optimal range.";
     } else {
-      // High moisture
       if (body.rainfall > 10) {
         actionText = "⚠ Soil is wet after rain. Pause irrigation and check drainage.";
         explain = data.explanation || "High moisture and recent rainfall — avoid over-irrigation.";
@@ -422,13 +397,12 @@ document.getElementById("btn-predict").addEventListener("click", async () => {
         explain = data.explanation || "Model predicts high moisture — verify field conditions.";
       }
     }
-
     document.getElementById("actionText").innerHTML = actionText;
     document.getElementById("explainText").innerText = data.explanation || explain;
 
-    // Recs
-    const crops = recommendCrops(cat, soilType);
-    const fert = recommendFertilizer(soilType, cat);
+    // recs:
+    const crops = recommendCrops(cat, body.soil_type);
+    const fert = recommendFertilizer(body.soil_type, cat);
     document.getElementById("cropList").innerText = crops;
     document.getElementById("fertList").innerText = fert;
     document.getElementById("recGrid").style.display = "block";
@@ -436,11 +410,138 @@ document.getElementById("btn-predict").addEventListener("click", async () => {
 
   } catch (err) {
     console.error(err);
-    // show a user-visible error card
     alert("Prediction failed: " + (err.message || err));
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = 'Predict Moisture';
+    btn.disabled = false; btn.innerHTML = 'Predict Moisture';
+  }
+});
+
+/* IMAGE PREDICT handler (separate) */
+document.getElementById("btn-predict-image").addEventListener("click", async () => {
+  // Clear any previous image error
+  const imgErr = document.getElementById("imgError");
+  imgErr.style.display = "none";
+
+  const input = document.getElementById("soilImageSeparate");
+  if (!input.files || input.files.length === 0) {
+    imgErr.textContent = "Please choose an image file to upload.";
+    imgErr.style.display = "block";
+    return;
+  }
+
+  const file = input.files[0];
+
+  // CLIENT-SIDE checks: must be image and size reasonable
+  if (!file.type || !file.type.startsWith("image/")) {
+    imgErr.textContent = "File is not an image. Please upload a JPG/PNG soil photo.";
+    imgErr.style.display = "block";
+    input.value = ""; // clear
+    return;
+  }
+  const maxMB = 6; // adjust if you want
+  if (file.size > maxMB * 1024 * 1024) {
+    imgErr.textContent = `Image too large (>${maxMB}MB). Please upload a smaller photo.`;
+    imgErr.style.display = "block";
+    input.value = "";
+    return;
+  }
+
+  const btn = document.getElementById("btn-predict-image");
+  btn.disabled = true; btn.innerText = "Uploading...";
+  hideResults();
+
+  try {
+    const fd = new FormData();
+    fd.append("file", file);
+
+    const upResp = await fetch(`${API}/upload`, { method: "POST", body: fd });
+    if (!upResp.ok) {
+      const txt = await upResp.text();
+      throw new Error("Upload failed: " + txt);
+    }
+    const ujson = await upResp.json();
+
+    // Expecting server to return something like { soil_type: 0 } or { error: "not_soil" }
+    if (!ujson || ujson.soil_type === undefined) {
+      // server says not-soil or returned nothing relevant
+      imgErr.textContent = "Photo unsuitable — please upload a clear soil image (JPG/PNG).";
+      imgErr.style.display = "block";
+      input.value = "";
+      return;
+    }
+
+    // valid soil_type -> do a prediction using that soil_type and current numerical inputs
+    const soilType = parseInt(ujson.soil_type);
+    document.getElementById("soil_type").value = soilType;
+
+    // You can decide whether to use the numeric inputs or defaults here.
+    const body = {
+      temperature: parseFloat(document.getElementById("temperature").value) || 25,
+      humidity: parseFloat(document.getElementById("humidity").value) || 60,
+      rainfall: parseFloat(document.getElementById("rainfall").value) || 4,
+      soil_type: soilType
+    };
+
+    // call predict
+    const p = await fetch(`${API}/predict`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(body)
+    });
+    if (!p.ok) {
+      const t = await p.text();
+      throw new Error("Predict after upload failed: " + t);
+    }
+    const data = await p.json();
+
+    // show results (same as main predict)
+    const moist = (data && data.moisture !== undefined) ? Number(data.moisture) : NaN;
+    const moistureText = Number.isFinite(moist) ? `${moist.toFixed(2)}%` : (data.moisture ?? "--");
+    const cat = (data && data.category) ? data.category : (Number.isFinite(moist) ? categoryTag(moist) : "Unknown");
+    document.getElementById("moistText").innerHTML = `Moisture: <span style="color:inherit; font-weight:700">${moistureText}</span>`;
+    document.getElementById("catText").innerText = `Category: ${cat}`;
+    if (cat.includes("Low")) setResultStyle("low");
+    else if (cat.includes("Medium")) setResultStyle("medium");
+    else setResultStyle("high");
+
+    // action and text
+    let actionText = "", explain = "";
+    if (Number.isFinite(moist) && (moist < 12 || (cat.includes("Low") && body.rainfall < 5))) {
+      actionText = "💧 Soil is dry. Irrigate soon (small, frequent doses) and apply mulch to retain moisture.";
+      explain = data.explanation || "Low predicted moisture with little recent rainfall — irrigate and mulch.";
+    } else if (cat.includes("Medium")) {
+      actionText = "🌿 Moisture is optimal. Monitor regularly and follow crop schedule.";
+      explain = data.explanation || "Conditions are within the model's optimal range.";
+    } else {
+      if (body.rainfall > 10) {
+        actionText = "⚠ Soil is wet after rain. Pause irrigation and check drainage.";
+        explain = data.explanation || "High moisture and recent rainfall — avoid over-irrigation.";
+      } else {
+        actionText = "⚠ Soil is wet. Check field drains and avoid watering until it lowers.";
+        explain = data.explanation || "Model predicts high moisture — verify field conditions.";
+      }
+    }
+    document.getElementById("actionText").innerHTML = actionText;
+    document.getElementById("explainText").innerText = data.explanation || explain;
+
+    // recs
+    document.getElementById("cropList").innerText = recommendCrops(cat, soilType);
+    document.getElementById("fertList").innerText = recommendFertilizer(soilType, cat);
+    document.getElementById("recGrid").style.display = "block";
+    document.getElementById("actionCard").style.display = "block";
+
+    // keep the succesful uploaded file in input? we'll clear it to avoid accidental re-submission:
+    input.value = "";
+
+  } catch (err) {
+    console.error(err);
+    const msg = (err.message || String(err));
+    const imgErr = document.getElementById("imgError");
+    imgErr.textContent = "Photo unsuitable — please upload a clear soil image (JPG/PNG).";
+    imgErr.style.display = "block";
+    input.value = "";
+  } finally {
+    btn.disabled = false; btn.innerText = 'Predict from Image';
   }
 });
 </script>
