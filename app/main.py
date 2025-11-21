@@ -183,9 +183,13 @@ def predict(input: InputData):
     }
 
 # -----------------------------
-# IMAGE UPLOAD
+# IMAGE UPLOAD / SOIL TYPE CLASSIFICATION (existing heuristic)
 # -----------------------------
 def classify_soil_from_image(img: Image.Image) -> int:
+    """
+    Very small heuristic classifier that guesses soil type from color averages.
+    Returns 0 (sandy), 1 (loam), 2 (clay)
+    """
     img = img.resize((60, 60))
     arr = np.array(img.convert("RGB"))
     avg = arr.mean(axis=(0, 1))
@@ -199,16 +203,106 @@ def classify_soil_from_image(img: Image.Image) -> int:
         return 2  # clay
     return 1  # loam
 
+# -----------------------------
+# SOIL vs NON-SOIL DETECTION (COLOR HEURISTIC)
+# -----------------------------
+def is_soil_image(img: Image.Image) -> float:
+    """
+    Detect if the image looks like soil based on color statistics.
+    Returns a confidence value between 0.0 and 1.0.
+    """
+    try:
+        img = img.resize((80, 80)).convert("RGB")
+        arr = np.array(img)
+
+        # average R,G,B values
+        r = float(arr[:, :, 0].mean())
+        g = float(arr[:, :, 1].mean())
+        b = float(arr[:, :, 2].mean())
+
+        # scoring rules
+        brown_score = 0.0
+
+        # Rule 1: brownish color pattern (R > G > B)
+        if r > g and g > b:
+            brown_score += 0.4
+
+        # Rule 2: low blue increases soil likelihood
+        if b < 120:
+            brown_score += 0.3
+
+        # Rule 3: earthy brightness range
+        brightness = (r + g + b) / 3.0
+        if 50 < brightness < 180:
+            brown_score += 0.3
+
+        confidence = min(1.0, brown_score)
+        return float(confidence)
+    except Exception:
+        return 0.0
+
+@app.post("/check-soil")
+async def check_soil(file: UploadFile = File(...)):
+    """
+    Returns whether the uploaded image looks like soil.
+    Uses color heuristics; no TensorFlow required.
+    JSON: { "soil": bool, "confidence": float }
+    """
+    try:
+        image_bytes = await file.read()
+        img = Image.open(BytesIO(image_bytes)).convert("RGB")
+
+        confidence = is_soil_image(img)
+
+        # threshold (adjust if you want stricter/looser detection)
+        THRESHOLD = 0.60
+        is_soil = confidence >= THRESHOLD
+
+        return {"soil": bool(is_soil), "confidence": float(confidence)}
+    except Exception as e:
+        # return an error payload so frontend can show message
+        return {"error": "Invalid image", "detail": str(e)}
+
+# -----------------------------
+# /upload endpoint (uses check first then classifies)
+# -----------------------------
 @app.post("/upload")
 async def upload_image(file: UploadFile = File(...)):
-    content = await file.read()
+    """
+    Upload image, validate it's soil (using check), then classify soil type with heuristic.
+    Returns: { soil_type: int, soil_label: str, confidence: float } on success
+             { error: "not_soil", confidence: float } if check fails
+             { error: "Invalid image", detail: ... } on image decode error
+    """
     try:
-        img = Image.open(BytesIO(content))
-    except Exception:
-        return {"error": "Invalid image file."}
-    soil_type = classify_soil_from_image(img)
-    labels = {0: "Sandy", 1: "Loam", 2: "Clay"}
-    return {"soil_type": int(soil_type), "soil_label": labels[int(soil_type)]}
+        content = await file.read()
+    except Exception as e:
+        return {"error": "Invalid image read", "detail": str(e)}
+
+    # Validate it's an image and looks like soil
+    try:
+        img = Image.open(BytesIO(content)).convert("RGB")
+    except Exception as e:
+        return {"error": "Invalid image", "detail": str(e)}
+
+    try:
+        confidence = is_soil_image(img)
+        if confidence < 0.60:
+            return {"error": "not_soil", "confidence": float(confidence)}
+    except Exception as e:
+        return {"error": "check_failed", "detail": str(e)}
+
+    # classify soil type (using original heuristic)
+    try:
+        soil_type = classify_soil_from_image(img)
+        labels = {0: "Sandy", 1: "Loam", 2: "Clay"}
+        return {
+            "soil_type": int(soil_type),
+            "soil_label": labels.get(int(soil_type), "Unknown"),
+            "confidence": float(confidence)
+        }
+    except Exception as e:
+        return {"error": "classification_failed", "detail": str(e)}
 
 # -----------------------------
 # WEATHER API
