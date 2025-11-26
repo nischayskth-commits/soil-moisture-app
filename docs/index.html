@@ -139,8 +139,8 @@
   <div class="app-card container">
     <div class="row">
       <div class="col-12 text-center">
-        <h1>?? Soil Moisture Predictor</h1>
-        <div class="subtitle">Predict soil moisture & get recommendations � crops, fertilizer & actions</div>
+        <h1>🌱 Soil Moisture Predictor</h1>
+        <div class="subtitle">Predict soil moisture & get recommendations 🌾 crops, fertilizer & actions</div>
       </div>
     </div>
 
@@ -148,12 +148,12 @@
       <div class="col-12 text-center mb-2">
         <button class="btn btn-info btn-main w-100" id="btn-weather" title="Auto-fill weather using your location">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="vertical-align:middle; margin-right:8px" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 16.58A5 5 0 0 0 18 6h-1.26A7 7 0 0 0 5 9a5 5 0 0 0 1 9h14z"/><circle cx="7" cy="18" r="1"/><circle cx="11" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>
-          Auto-Fill Weather Data
+          ☁️ Auto-Fill Weather Data
         </button>
       </div>
 
       <div class="col-md-6">
-        <label>Temperature (�C)</label>
+        <label>Temperature (°C)</label>
         <input id="temperature" class="form-control" type="number" value="25">
       </div>
       <div class="col-md-6">
@@ -242,7 +242,7 @@
         </div>
 
         <footer id="siteFooter" style="margin-top:18px;">
-          Made with <span id="heart" style="color:#e25555">?</span> for Smart Farming
+          Made with <span id="heart" style="color:#e25555">❤️</span> for Smart Farming
         </footer>
       </div>
     </div>
@@ -250,9 +250,9 @@
     <!-- SEPARATE Image uploader area -->
     <div class="row mt-4">
       <div class="col-12">
-        <label>Upload Soil Photo (image-only) � use this for image-based prediction</label>
+        <label>Upload Soil Photo (image-only) — use this for image-based prediction</label>
         <input id="soilImageSeparate" class="form-control" type="file" accept="image/*">
-        <div class="image-error" id="imgError">Photo unsuitable � please upload a clear soil image (JPG/PNG).</div>
+        <div class="image-error" id="imgError">Photo unsuitable — please upload a clear soil image (JPG/PNG).</div>
       </div>
       <div class="col-12 text-center mt-2">
         <button id="btn-predict-image" class="btn btn-outline-primary btn-main w-50">
@@ -316,7 +316,7 @@ function hideResults() {
 document.getElementById("btn-weather").addEventListener("click", async () => {
   if (!navigator.geolocation) { alert("Geolocation not supported"); return; }
   const btn = document.getElementById("btn-weather");
-  btn.disabled = true; btn.innerHTML = 'Fetching�';
+  btn.disabled = true; btn.innerHTML = 'Fetching…';
   navigator.geolocation.getCurrentPosition(async pos => {
     const lat = pos.coords.latitude, lon = pos.coords.longitude;
     try {
@@ -336,13 +336,13 @@ document.getElementById("btn-weather").addEventListener("click", async () => {
       document.getElementById("rainfall").value = Math.round(rain * 10) / 10;
     } catch(e){
       console.warn(e);
-      alert("Weather fetch failed � using defaults.");
+      alert("Weather fetch failed — using defaults.");
     } finally {
-      btn.disabled = false; btn.innerHTML = 'Auto-Fill Weather Data';
+      btn.disabled = false; btn.innerHTML = '☁️ Auto-Fill Weather Data';
     }
   }, err => {
     alert("Location permission needed for weather autofill.");
-    btn.disabled = false; btn.innerHTML = 'Auto-Fill Weather Data';
+    btn.disabled = false; btn.innerHTML = '☁️ Auto-Fill Weather Data';
   });
 });
 
@@ -382,18 +382,18 @@ document.getElementById("btn-predict").addEventListener("click", async () => {
     // action + explanation
     let actionText = "", explain = "";
     if (Number.isFinite(moist) && (moist < 12 || (cat.includes("Low") && body.rainfall < 5))) {
-      actionText = "?? Soil is dry. Irrigate soon (small, frequent doses) and apply mulch to retain moisture.";
-      explain = data.explanation || "Low predicted moisture with little recent rainfall � irrigate and mulch.";
+      actionText = "🌵 Soil is dry. Irrigate soon (small, frequent doses) and apply mulch to retain moisture.";
+      explain = data.explanation || "Low predicted moisture with little recent rainfall — irrigate and mulch.";
     } else if (cat.includes("Medium")) {
-      actionText = "?? Moisture is optimal. Monitor regularly and follow crop schedule.";
+      actionText = "✅ Moisture is optimal. Monitor regularly and follow crop schedule.";
       explain = data.explanation || "Conditions are within the model's optimal range.";
     } else {
       if (body.rainfall > 10) {
-        actionText = "? Soil is wet after rain. Pause irrigation and check drainage.";
-        explain = data.explanation || "High moisture and recent rainfall � avoid over-irrigation.";
+        actionText = "💧 Soil is wet after rain. Pause irrigation and check drainage.";
+        explain = data.explanation || "High moisture and recent rainfall — avoid over-irrigation.";
       } else {
-        actionText = "? Soil is wet. Check field drains and avoid watering until it lowers.";
-        explain = data.explanation || "Model predicts high moisture � verify field conditions.";
+        actionText = "💧 Soil is wet. Check field drains and avoid watering until it lowers.";
+        explain = data.explanation || "Model predicts high moisture — verify field conditions.";
       }
     }
     document.getElementById("actionText").innerHTML = actionText;
@@ -483,7 +483,7 @@ document.getElementById("btn-predict-image").addEventListener("click", async () 
     // Expecting server to return something like { soil_type: 0 } or { error: "not_soil" }
     if (!ujson || ujson.soil_type === undefined) {
       // server says not-soil or returned nothing relevant
-      imgErr.textContent = "Photo unsuitable � please upload a clear soil image (JPG/PNG).";
+      imgErr.textContent = "Photo unsuitable — please upload a clear soil image (JPG/PNG).";
       imgErr.style.display = "block";
       input.value = "";
       return;
@@ -526,18 +526,18 @@ document.getElementById("btn-predict-image").addEventListener("click", async () 
     // action and text
     let actionText = "", explain = "";
     if (Number.isFinite(moist) && (moist < 12 || (cat.includes("Low") && body.rainfall < 5))) {
-      actionText = "?? Soil is dry. Irrigate soon (small, frequent doses) and apply mulch to retain moisture.";
-      explain = data.explanation || "Low predicted moisture with little recent rainfall � irrigate and mulch.";
+      actionText = "🌵 Soil is dry. Irrigate soon (small, frequent doses) and apply mulch to retain moisture.";
+      explain = data.explanation || "Low predicted moisture with little recent rainfall — irrigate and mulch.";
     } else if (cat.includes("Medium")) {
-      actionText = "?? Moisture is optimal. Monitor regularly and follow crop schedule.";
+      actionText = "✅ Moisture is optimal. Monitor regularly and follow crop schedule.";
       explain = data.explanation || "Conditions are within the model's optimal range.";
     } else {
       if (body.rainfall > 10) {
-        actionText = "? Soil is wet after rain. Pause irrigation and check drainage.";
-        explain = data.explanation || "High moisture and recent rainfall � avoid over-irrigation.";
+        actionText = "💧 Soil is wet after rain. Pause irrigation and check drainage.";
+        explain = data.explanation || "High moisture and recent rainfall — avoid over-irrigation.";
       } else {
-        actionText = "? Soil is wet. Check field drains and avoid watering until it lowers.";
-        explain = data.explanation || "Model predicts high moisture � verify field conditions.";
+        actionText = "💧 Soil is wet. Check field drains and avoid watering until it lowers.";
+        explain = data.explanation || "Model predicts high moisture — verify field conditions.";
       }
     }
     document.getElementById("actionText").innerHTML = actionText;
@@ -555,9 +555,9 @@ document.getElementById("btn-predict-image").addEventListener("click", async () 
   } catch (err) {
     console.error(err);
     const msg = (err.message || String(err));
-    const imgErr = document.getElementById("imgError");
-    imgErr.textContent = "Photo unsuitable � please upload a clear soil image (JPG/PNG).";
-    imgErr.style.display = "block";
+    const imgErr2 = document.getElementById("imgError");
+    imgErr2.textContent = "Photo unsuitable — please upload a clear soil image (JPG/PNG).";
+    imgErr2.style.display = "block";
     input.value = "";
   } finally {
     btn.disabled = false; btn.innerText = 'Predict from Image';
